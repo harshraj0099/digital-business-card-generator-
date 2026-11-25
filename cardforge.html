@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CardForge – Digital Business Card Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;800&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --a1:#7c5cff; --a2:#00d4ff; --a3:#ff4fd8;
+  --bg:#07060f; --panel:rgba(255,255,255,.06); --line:rgba(255,255,255,.12);
+  --text:#f4f2ff; --muted:#a9a4c9;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Outfit',sans-serif;font-size:17px;color:var(--text);
+  background:var(--bg);min-height:100vh;overflow-x:hidden;
+}
+/* ---------- animated background ---------- */
+.bg{position:fixed;inset:0;z-index:-2;overflow:hidden}
+.blob{position:absolute;border-radius:50%;filter:blur(90px);opacity:.55;animation:float 18s ease-in-out infinite}
+.b1{width:520px;height:520px;background:var(--a1);top:-120px;left:-100px}
+.b2{width:460px;height:460px;background:var(--a2);bottom:-140px;right:-80px;animation-delay:-6s}
+.b3{width:380px;height:380px;background:var(--a3);top:40%;left:45%;animation-delay:-11s;opacity:.35}
+@keyframes float{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(60px,-40px) scale(1.12)}66%{transform:translate(-50px,50px) scale(.92)}}
+.grid{position:fixed;inset:0;z-index:-1;
+  background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:48px 48px;
+  mask-image:radial-gradient(ellipse at center,#000 30%,transparent 75%);
+  -webkit-mask-image:radial-gradient(ellipse at center,#000 30%,transparent 75%)}
+canvas#stars{position:fixed;inset:0;z-index:-1;pointer-events:none}
+
+/* ---------- layout ---------- */
+header{text-align:center;padding:40px 20px 0}
+.logo{display:inline-flex;align-items:center;gap:10px;font-family:'Syne',sans-serif;font-weight:800;letter-spacing:.5px;
+  padding:8px 18px;border:1px solid var(--line);border-radius:999px;background:var(--panel);backdrop-filter:blur(10px);font-size:15px;color:var(--muted)}
+.logo i{width:10px;height:10px;border-radius:50%;background:linear-gradient(135deg,var(--a2),var(--a3));box-shadow:0 0 12px var(--a2)}
+h1{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(38px,7vw,76px);line-height:1.02;margin:18px 0 12px;letter-spacing:-1.5px}
+h1 span{background:linear-gradient(90deg,var(--a2),var(--a1),var(--a3),var(--a2));background-size:250% auto;
+  -webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 6s linear infinite}
+@keyframes shine{to{background-position:250% center}}
+header p{color:var(--muted);font-size:19px;max-width:620px;margin:0 auto;font-weight:300}
+
+main{max-width:1240px;margin:34px auto 70px;padding:0 20px;display:grid;grid-template-columns:minmax(320px,1fr) minmax(340px,1.1fr);gap:30px;align-items:start}
+@media(max-width:940px){main{grid-template-columns:1fr}}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:26px;padding:26px;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  box-shadow:0 30px 80px -30px rgba(0,0,0,.7)}
+.panel h2{font-family:'Syne',sans-serif;font-size:22px;margin-bottom:18px;display:flex;align-items:center;gap:10px}
+.panel h2 em{font-style:normal;font-size:12px;font-family:'Outfit';color:var(--a2);border:1px solid var(--a2);padding:2px 9px;border-radius:99px;letter-spacing:1px}
+
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:520px){.row{grid-template-columns:1fr}}
+label{display:block;font-size:13px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin:14px 0 6px;font-weight:500}
+input,textarea{width:100%;background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:14px;padding:13px 15px;
+  color:var(--text);font:inherit;font-size:16px;outline:none;transition:.25s}
+input:focus,textarea:focus{border-color:var(--a2);box-shadow:0 0 0 4px rgba(0,212,255,.15);background:rgba(0,0,0,.4)}
+textarea{resize:vertical;min-height:84px}
+::placeholder{color:#6f6a96}
+
+.upload{display:flex;align-items:center;gap:16px;padding:14px;border:1.5px dashed var(--line);border-radius:18px;cursor:pointer;transition:.25s}
+.upload:hover{border-color:var(--a2);background:rgba(0,212,255,.05)}
+.upload img{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--a2)}
+.upload b{display:block;font-weight:600}
+.upload small{color:var(--muted)}
+.upload input{display:none}
+
+.themes{display:flex;flex-wrap:wrap;gap:12px;margin-top:6px}
+.sw{width:44px;height:44px;border-radius:14px;cursor:pointer;border:2px solid transparent;transition:.25s;position:relative}
+.sw:hover{transform:translateY(-3px) scale(1.06)}
+.sw.on{border-color:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.15)}
+.sw.on::after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;font-weight:700;color:#fff;text-shadow:0 1px 4px #0008}
+
+.seg{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.seg button{flex:1;min-width:90px;padding:11px;border-radius:12px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:var(--muted);font:inherit;cursor:pointer;transition:.25s}
+.seg button.on{color:#fff;border-color:var(--a2);background:linear-gradient(135deg,rgba(124,92,255,.35),rgba(0,212,255,.25))}
+
+/* ---------- preview ---------- */
+.stage{position:sticky;top:20px}
+.hint{text-align:center;color:var(--muted);font-size:14px;margin:14px 0 18px}
+.scene{perspective:1400px;display:flex;justify-content:center}
+.tilt{width:min(100%,460px);aspect-ratio:1.75/1;transform-style:preserve-3d;transition:transform .15s ease-out;position:relative}
+.flip{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .9s cubic-bezier(.2,.8,.2,1)}
+.flip.back{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;border-radius:26px;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  padding:clamp(16px,4%,28px);display:flex;color:#fff;
+  box-shadow:0 40px 80px -25px rgba(0,0,0,.8),inset 0 0 0 1px rgba(255,255,255,.18)}
+.face.b{transform:rotateY(180deg)}
+.face::before{content:"";position:absolute;inset:0;background:
+  radial-gradient(circle at 85% 0%,rgba(255,255,255,.35),transparent 45%),
+  radial-gradient(circle at 0% 100%,rgba(0,0,0,.35),transparent 50%);pointer-events:none}
+.face::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.22) 48%,transparent 62%);
+  transform:translateX(var(--gx,-100%));transition:transform .4s;pointer-events:none}
+.face .in{position:relative;z-index:2;display:flex;flex-direction:column;width:100%}
+
+/* layout variants */
+.card-classic .f .in{justify-content:space-between}
+.f .top{display:flex;gap:clamp(10px,3%,18px);align-items:center}
+.avatar{width:clamp(62px,22%,96px);aspect-ratio:1;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,.85);box-shadow:0 10px 30px rgba(0,0,0,.35);flex:none;background:#0003}
+.sq .avatar{border-radius:24%}
+.nm{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(20px,5.6vw,30px);line-height:1.05;letter-spacing:-.5px;word-break:break-word}
+.tt{font-size:clamp(13px,3.2vw,16px);opacity:.92;margin-top:4px;font-weight:500}
+.co{font-size:clamp(12px,2.9vw,14px);opacity:.75;margin-top:2px;letter-spacing:.6px;text-transform:uppercase}
+.bio{font-size:clamp(12px,3vw,14.5px);line-height:1.45;opacity:.9;font-weight:300;margin:10px 0}
+.soc{display:flex;gap:10px;flex-wrap:wrap}
+.soc a{display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:#fff;font-size:clamp(12px,3vw,14px);font-weight:500;
+  padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);backdrop-filter:blur(8px);transition:.25s}
+.soc a:hover{background:#fff;color:#111;transform:translateY(-2px)}
+.soc svg{width:18px;height:18px;fill:currentColor}
+
+/* centered layout */
+.center .f .in{align-items:center;text-align:center;justify-content:center}
+.center .f .top{flex-direction:column}
+.center .soc{justify-content:center}
+.center .bio{display:none}
+/* split layout */
+.split .f{padding:0}
+.split .f .in{flex-direction:row}
+.split .f .left{width:36%;display:grid;place-items:center;background:rgba(0,0,0,.28)}
+.split .f .left .avatar{width:72%}
+.split .f .right{flex:1;padding:clamp(14px,4%,24px);display:flex;flex-direction:column;justify-content:space-between}
+.split .f .top{display:block}
+.split .f .top .avatar{display:none}
+.classic .f .left{display:none}
+
+/* back face */
+.b .in{justify-content:space-between}
+.ct{display:grid;gap:9px;font-size:clamp(12.5px,3.1vw,15px)}
+.ct div{display:flex;align-items:center;gap:10px;word-break:break-all}
+.ct span{width:30px;height:30px;border-radius:10px;background:rgba(255,255,255,.2);display:grid;place-items:center;flex:none;font-size:14px}
+.qrwrap{display:flex;gap:14px;align-items:flex-end;justify-content:space-between}
+.b .in{flex-direction:row;gap:16px;align-items:stretch;justify-content:space-between}
+.bl{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:space-between;gap:10px}
+.qrcol{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;flex:none;width:clamp(104px,36%,160px)}
+.qrcol small{font-size:12px;opacity:.9;letter-spacing:.5px;font-weight:500}
+.qr{background:#fff;border-radius:16px;padding:9px;width:100%;aspect-ratio:1;box-shadow:0 10px 28px rgba(0,0,0,.35)}
+.qr img{width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges}
+.qrwrap small{opacity:.8;font-size:12px;line-height:1.4}
+.brand{font-family:'Syne';font-weight:800;font-size:12px;letter-spacing:2px;opacity:.7}
+
+/* actions */
+.actions{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:26px}
+.btn{font:inherit;font-weight:600;font-size:16px;padding:14px 22px;border-radius:16px;border:1px solid var(--line);cursor:pointer;color:#fff;
+  background:rgba(255,255,255,.07);transition:.25s;display:inline-flex;gap:8px;align-items:center}
+.btn:hover{transform:translateY(-3px);background:rgba(255,255,255,.14)}
+.btn.pri{border:none;background:linear-gradient(120deg,var(--a1),var(--a2));box-shadow:0 14px 34px -10px var(--a1)}
+.toast{position:fixed;bottom:26px;left:50%;transform:translate(-50%,120px);background:#fff;color:#111;padding:13px 22px;border-radius:14px;font-weight:600;transition:.4s;z-index:50}
+.toast.show{transform:translate(-50%,0)}
+footer{text-align:center;color:var(--muted);padding:0 20px 40px;font-size:14px}
+</style>
+</head>
+<body>
+<div class="bg"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+<div class="grid"></div>
+<canvas id="stars"></canvas>
+
+<header>
+  <h1>Digital <span>Business Card</span><br>Generator</h1>
+</header>
+
+<main>
+  <!-- ================= FORM ================= -->
+  <section class="panel">
+    <label>Profile Photo</label>
+    <label class="upload" style="text-transform:none;letter-spacing:0;margin:0;font-size:16px;color:var(--text)">
+      <img id="avatarThumb" alt="">
+      <div><b>Upload photo</b><small>JPG or PNG</small></div>
+      <input type="file" id="photo" accept="image/*">
+    </label>
+
+    <div class="row">
+      <div><label>Full Name</label><input id="name" placeholder="Rahul Sharma"></div>
+      <div><label>Job Title</label><input id="title" placeholder="Full-Stack Developer"></div>
+    </div>
+    <div class="row">
+      <div><label>Company</label><input id="company" placeholder="Pixel Labs"></div>
+      <div><label>Phone</label><input id="phone" placeholder="+91 98765 43210"></div>
+    </div>
+    <div class="row">
+      <div><label>Email</label><input id="email" type="email" placeholder="rahul@email.com"></div>
+      <div><label>Website</label><input id="site" placeholder="https://yoursite.com"></div>
+    </div>
+
+    <label>Instagram</label>
+    <input id="insta" placeholder="https://instagram.com/yourname">
+    <label>LinkedIn</label>
+    <input id="linkedin" placeholder="https://linkedin.com/in/yourname">
+
+    <label>Short Bio</label>
+    <textarea id="bio" placeholder="A short line about you"></textarea>
+
+    <label>Color Theme</label>
+    <div class="themes" id="themes"></div>
+
+    <label>Card Layout</label>
+    <div class="seg" id="layouts">
+      <button data-l="classic" class="on">Classic</button>
+      <button data-l="center">Centered</button>
+      <button data-l="split">Split</button>
+    </div>
+
+    <label>Photo Shape</label>
+    <div class="seg" id="shapes">
+      <button data-s="round" class="on">Circle</button>
+      <button data-s="sq">Rounded Square</button>
+    </div>
+  </section>
+
+  <!-- ================= PREVIEW ================= -->
+  <section class="stage">
+    <div class="scene">
+      <div class="tilt" id="tilt">
+        <div class="flip" id="flip">
+          <!-- FRONT -->
+          <div class="face f" id="front">
+            <div class="in">
+              <div class="left"><img class="avatar" id="av2" alt=""></div>
+              <div class="right">
+                <div class="top">
+                  <img class="avatar" id="av1" alt="">
+                  <div>
+                    <div class="nm" id="vName"></div>
+                    <div class="tt" id="vTitle"></div>
+                    <div class="co" id="vCompany"></div>
+                  </div>
+                </div>
+                <div class="bio" id="vBio"></div>
+                <div class="soc" id="vSoc"></div>
+              </div>
+            </div>
+          </div>
+          <!-- BACK -->
+          <div class="face b" id="back">
+            <div class="in">
+              <div class="bl">
+                <div class="brand">DIGITAL CARD</div>
+                <div class="ct" id="vContact"></div>
+              </div>
+              <div class="qrcol">
+                <div class="qr"><img id="qr" alt="QR code"></div>
+                <small>Scan to connect</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="flipBtn">🔄 Flip Card</button>
+      <button class="btn pri" id="dlBtn">⬇ Download PNG</button>
+      <button class="btn" id="vcfBtn">📇 Save Contact (.vcf)</button>
+      <button class="btn" id="resetBtn">♻ Reset</button>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const DEFAULT_AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00d4ff"/><stop offset="1" stop-color="#ff4fd8"/></linearGradient></defs><rect width="120" height="120" fill="url(#g)"/><circle cx="60" cy="46" r="20" fill="#fff" opacity=".9"/><path d="M20 112c4-26 22-38 40-38s36 12 40 38z" fill="#fff" opacity=".9"/></svg>`);
+
+const IG_ICON = '<svg viewBox="0 0 24 24"><path d="M12 2.2c3.2 0 3.6 0 4.8.1 3.3.1 4.8 1.7 4.9 4.9.1 1.3.1 1.6.1 4.8s0 3.6-.1 4.8c-.1 3.2-1.7 4.8-4.9 4.9-1.3.1-1.6.1-4.8.1s-3.6 0-4.8-.1c-3.3-.1-4.8-1.7-4.9-4.9C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.8C2.4 3.9 4 2.4 7.2 2.3 8.4 2.2 8.8 2.2 12 2.2zM12 0C8.7 0 8.3 0 7.1.1 2.7.3.3 2.7.1 7.1 0 8.3 0 8.7 0 12s0 3.7.1 4.9c.2 4.4 2.6 6.8 7 7C8.3 24 8.7 24 12 24s3.7 0 4.9-.1c4.4-.2 6.8-2.6 7-7 .1-1.2.1-1.6.1-4.9s0-3.7-.1-4.9c-.2-4.4-2.6-6.8-7-7C15.7 0 15.3 0 12 0zm0 5.8a6.2 6.2 0 100 12.4 6.2 6.2 0 000-12.4zM12 16a4 4 0 110-8 4 4 0 010 8zm6.4-11.8a1.4 1.4 0 100 2.9 1.4 1.4 0 000-2.9z"/></svg>';
+const LI_ICON = '<svg viewBox="0 0 24 24"><path d="M20.4 20.5h-3.6v-5.6c0-1.3 0-3-1.8-3s-2.1 1.4-2.1 2.9v5.7H9.4V9h3.4v1.6h.1c.5-.9 1.6-1.8 3.4-1.8 3.6 0 4.3 2.4 4.3 5.5v6.2zM5.3 7.4a2.1 2.1 0 110-4.2 2.1 2.1 0 010 4.2zM7.1 20.5H3.6V9h3.5v11.5zM22.2 0H1.8C.8 0 0 .8 0 1.7v20.6c0 .9.8 1.7 1.8 1.7h20.4c1 0 1.8-.8 1.8-1.7V1.7C24 .8 23.2 0 22.2 0z"/></svg>';
+
+/* Instagram / LinkedIn URL normalise karna */
+function igURL(v){
+  v = v.trim(); if(!v) return '';
+  if(/instagram\.com/i.test(v)) return /^https?:\/\//i.test(v) ? v : 'https://' + v.replace(/^\/\//,'');
+  return 'https://instagram.com/' + v.replace(/^@/,'').replace(/\s+/g,'');
+}
+function liURL(v){
+  v = v.trim(); if(!v) return '';
+  if(/linkedin\.com/i.test(v)) return /^https?:\/\//i.test(v) ? v : 'https://' + v.replace(/^\/\//,'');
+  return 'https://linkedin.com/in/' + v.replace(/^@/,'').replace(/\s+/g,'');
+}
+function siteURL(v){ v=v.trim(); if(!v) return ''; return /^https?:\/\//i.test(v)?v:'https://'+v; }
+
+/* ---------- themes ---------- */
+const THEMES = [
+  ['Aurora',   'linear-gradient(135deg,#7c5cff,#00d4ff)'],
+  ['Sunset',   'linear-gradient(135deg,#ff512f,#dd2476)'],
+  ['Mint',     'linear-gradient(135deg,#00b09b,#96c93d)'],
+  ['Midnight', 'linear-gradient(135deg,#0f2027,#2c5364)'],
+  ['Candy',    'linear-gradient(135deg,#ff4fd8,#7c5cff)'],
+  ['Gold',     'linear-gradient(135deg,#f7971e,#b8860b)'],
+  ['Ocean',    'linear-gradient(135deg,#2193b0,#6dd5ed)'],
+  ['Noir',     'linear-gradient(135deg,#232526,#000000)'],
+];
+
+const DEFAULTS = {
+  name:'Rahul Sharma', title:'Full-Stack Developer', company:'Pixel Labs',
+  phone:'+91 98765 43210', email:'rahul@email.com', site:'https://yoursite.com',
+  insta:'https://instagram.com/yourname', linkedin:'https://linkedin.com/in/yourname',
+  bio:'I build clean, fast websites and apps.',
+  theme:0, layout:'classic', shape:'round', photo:''
+};
+let S = {...DEFAULTS};
+try{ const saved = JSON.parse(localStorage.getItem('cardforge')||'null'); if(saved) S = {...DEFAULTS, ...saved}; }catch(e){}
+
+/* theme swatches */
+const themesBox = $('themes');
+THEMES.forEach((t,i)=>{
+  const d = document.createElement('div');
+  d.className='sw'; d.title=t[0]; d.style.background=t[1];
+  d.onclick=()=>{S.theme=i; render();};
+  themesBox.appendChild(d);
+});
+
+/* ---------- QR code (short link = easy to scan) ---------- */
+function qrText(){
+  return liURL(S.linkedin) || siteURL(S.site) || igURL(S.insta) ||
+         ('MECARD:N:' + (S.name||'') + ';TEL:' + (S.phone||'') + ';EMAIL:' + (S.email||'') + ';;');
+}
+function drawQR(text){
+  const img = $('qr');
+  try{
+    if(typeof qrcode === 'undefined') throw new Error('no lib');
+    const q = qrcode(0, 'M');
+    q.addData(text); q.make();
+    img.removeAttribute('crossorigin');
+    img.src = q.createDataURL(10, 0);   // big crisp modules, no margin (white padding is in CSS)
+  }catch(e){
+    img.crossOrigin = 'anonymous';
+    img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=0&ecc=M&data=' + encodeURIComponent(text);
+  }
+}
+
+/* ---------- render ---------- */
+function render(){
+  const g = THEMES[S.theme][1];
+  const photo = S.photo || DEFAULT_AVATAR;
+
+  $('front').style.background = g;
+  $('back').style.background  = g;
+  document.querySelectorAll('.sw').forEach((s,i)=>s.classList.toggle('on', i===S.theme));
+
+  $('tilt').className = 'tilt ' + S.layout + ' ' + S.shape;
+  document.querySelectorAll('#layouts button').forEach(b=>b.classList.toggle('on', b.dataset.l===S.layout));
+  document.querySelectorAll('#shapes button').forEach(b=>b.classList.toggle('on', b.dataset.s===S.shape));
+
+  ['av1','av2','avatarThumb'].forEach(id=>$(id).src = photo);
+
+  $('vName').textContent    = S.name    || 'Your Name';
+  $('vTitle').textContent   = S.title   || 'Your Title';
+  $('vCompany').textContent = S.company || '';
+  $('vBio').textContent     = S.bio     || '';
+
+  let soc='';
+  const ig = igURL(S.insta), li = liURL(S.linkedin);
+  if(ig) soc += `<a href="${esc(ig)}" target="_blank" rel="noopener">${IG_ICON}Instagram</a>`;
+  if(li) soc += `<a href="${esc(li)}" target="_blank" rel="noopener">${LI_ICON}Linked
